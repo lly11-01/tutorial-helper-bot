@@ -43,7 +43,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-TOKEN = "6447775107:AAEPVEgZpMeBtYQY4J3FkFCQQp0XhmqpyZ8"
+TOKEN = ""
 SAVE_FILE = "user_data.json"
 
 
