@@ -1,5 +1,5 @@
 """
-VERSION: 0.1
+VERSION: 0.2
 Copyright (C) 2023 Loy Liang Yi
 You may use, distribute and modify this code under the terms of the GNU General Public License v3.0.
 """
@@ -10,6 +10,7 @@ from typing import Dict, Optional
 import telegram
 from telegram import __version__ as TG_VER
 from telegram.ext.filters import MessageFilter
+from pprint import pprint
 
 try:
     from telegram import __version_info__
@@ -43,7 +44,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-TOKEN = ""
+TOKEN = "INSERT_TOKEN_HERE"
 SAVE_FILE = "user_data.json"
 
 
@@ -51,6 +52,10 @@ class Session:
     def __init__(self, number, *qns):
         self.tut_num = number
         self.questions = {q: None for q in qns}
+
+    @property
+    def name(self):
+        return "Tut "+self.tut_num
 
     @property
     def keyboard(self):
@@ -92,14 +97,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     global sentinel
     if sentinel is not None:
-        await update.message.reply_text("Bot is already initialized")
+        reply_msg = await update.message.reply_text("Bot is already initialized")
+        await reply_msg.delete()
         return
+
+    # Wipe chat data and user data
+    context.chat_data.clear()
+    context.user_data.clear()
+    
     context.chat_data['active'] = None
     context.chat_data['volunteer_freqs'] = {}
+    context.chat_data['logs'] = {}
 
-    await update.message.reply_text("Beep boop, bot is ready!")
+    reply_msg = await update.message.reply_text("Beep boop, bot is ready!")
     sentinel = object()
     await update.message.delete()
+    await reply_msg.delete()
 
 
 async def check_if_admin(update) -> bool:
@@ -108,10 +121,12 @@ async def check_if_admin(update) -> bool:
     otherwise tell them they are not permitted to use it.
     """
     chat = update.message.chat
-    if chat.type != ChatType.GROUP:
+    # print(chat.type)
+    if chat.type not in (ChatType.GROUP, ChatType.SUPERGROUP):
         logging.error("ERROR: Not implemented for non-group chats")
         return False
     user = await chat.get_member(user_id=update.message.from_user.id)
+    # print(user.status)
     if user.status in (ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR):
         return True
     message = "You are not permitted to access this command."
@@ -190,10 +205,16 @@ async def end_tut(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         context.chat_data['current_display'] = None
 
         # Award those who participated in previous session
-        participants = (user for user in prev_session.questions.values() if user is not None)
+        participants = ((q_answered, user) for (q_answered, user) in prev_session.questions.items() if user is not None)
         freqs = context.chat_data['volunteer_freqs']
-        for p in participants:
+        log = context.chat_data['logs']
+        for q, p in participants:
             freqs[p] = freqs.get(p, 0) + 1
+
+            # Update logs
+            if p not in log:
+                log[p] = {}
+            log[p][prev_session.name] = q
 
         # Update the options listening filter
         global current_filter
@@ -287,8 +308,10 @@ async def show_attempts(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """
     if await check_if_admin(update):
         print(context.chat_data['volunteer_freqs'])
+        # pprint(context.chat_data['logs'])
         user_dm_id = update.message.from_user.id
         await context.bot.send_message(chat_id=user_dm_id, text=str(context.chat_data['volunteer_freqs']))
+        await context.bot.send_message(chat_id=user_dm_id, text=str(context.chat_data['logs']))
     await update.message.delete()
 
 
