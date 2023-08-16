@@ -97,7 +97,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     global sentinel
     if sentinel is not None:
-        reply_msg = await update.message.reply_text("Bot is already initialized")
+        reply_msg = await update.message.reply_text("Bot is already initialized", reply_markup=ReplyKeyboardRemove())
 
         await update.message.delete()
         await reply_msg.delete()
@@ -111,7 +111,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.chat_data['volunteer_freqs'] = {}
     context.chat_data['logs'] = {}
 
-    reply_msg = await update.message.reply_text("Beep boop, bot is ready!")
+    reply_msg = await update.message.reply_text("Beep boop, bot is ready!", reply_markup=ReplyKeyboardRemove())
     sentinel = object()
     await update.message.delete()
     # await reply_msg.delete()
