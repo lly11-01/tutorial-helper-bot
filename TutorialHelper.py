@@ -1,8 +1,12 @@
 """
-VERSION: 0.3.1
+VERSION: 0.3.2
 Copyright (C) 2023 Loy Liang Yi
 You may use, distribute and modify this code under the terms of the GNU General Public License v3.0.
 """
+
+# EDIT TOKEN HERE
+TOKEN = "INSERT_TOKEN_HERE"
+
 import io
 import logging
 from typing import Dict, Optional
@@ -44,7 +48,6 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
-TOKEN = "INSERT_TOKEN_HERE"
 SAVE_FILE = "user_data.json"
 
 
@@ -55,7 +58,7 @@ class Session:
 
     @property
     def name(self):
-        return "Tut "+self.tut_num
+        return "Tut " + self.tut_num
 
     @property
     def keyboard(self):
@@ -106,7 +109,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Wipe chat data and user data
     context.chat_data.clear()
     context.user_data.clear()
-    
+
     context.chat_data['active'] = None
     context.chat_data['volunteer_freqs'] = {}
     context.chat_data['logs'] = {}
@@ -322,42 +325,44 @@ async def show_attempts(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         chat_name = update.message.chat.title
         freqs = dict(sorted(context.chat_data['volunteer_freqs'].items(), key=lambda x: x[1], reverse=True))
         logs = context.chat_data['logs']
-        
+
         intro_str = f"Here's the attempts for chat {chat_name}"
         await context.bot.send_message(chat_id=user_to_dm_id, text=intro_str)
 
         # Overall freqs
         builder = io.StringIO()
         builder.write("Overall volunteering frequencies\n\n")
-        for k,v in freqs.items():
+        for k, v in freqs.items():
             builder.write(f"{k.username}: {v}\n")
         await context.bot.send_message(chat_id=user_to_dm_id, text=builder.getvalue())
 
         # Specific details on who did what qn
         builder = io.StringIO()
         builder.write("Detailed volunteering logs\n\n")
-        for k,v in logs.items():
+        for k, v in logs.items():
             builder.write(f"{k.username}: ")
             strs = []
-            for t,q in v.items():
+            for t, q in v.items():
                 strs.append(f"Q{q} in {t}")
             builder.write(", ".join(strs))
             builder.write("\n")
-                
+
         await context.bot.send_message(chat_id=user_to_dm_id, text=builder.getvalue())
     await update.message.delete()
+
 
 async def help_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Prints a how to use the bot for students
     """
-    message = """To volunteer to do a question in the upcoming tutorial, just reply to the pinned message made by me with the question you want to do!\n
-You can tap on the keyboard icon (next to the paperclip icon) to choose a question.\n
+    message = """To volunteer to do a question in the upcoming tutorial, just reply to the pinned message made by me (the bot!) with the question you want to do!\n
+You can tap on the ⌘ icon (next to the paperclip icon) to choose a question.\n
 Do note that you can only do one question per tutorial (to give others a chance to answer!).\n
 If you wish to remove your name if you already volunteered, just reply to the pinned message again and select the 'Remove' option.\n
 If you wish to change the question you want to do, remove your name and then reselect the new question.\n
 Keep in mind that I will award class participation to those who volunteer!"""
     await update.message.reply_text(message)
+
 
 async def help_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -367,15 +372,20 @@ async def help_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         builder = io.StringIO()
         builder.write("Admin-only commands\n\n")
         builder.write("/start - Initializes the bot (if it isn't already)\n")
-        builder.write("/new <tut number> <*question numbers> - Creates and begins a new tutorial session, sets up a board for students to volunteer questions\n")
+        builder.write(
+            "/new <tut number> <*question numbers> - Creates and begins a new tutorial session, sets up a board for students to volunteer questions\n")
         builder.write("/end - Ends currently running tutorial session\n")
-        builder.write("/show_attempts - PMs a set of messages containing each students volunteering frequencies and logs of which questions they did\n")                      
+        builder.write(
+            "/show_attempts - PMs a set of messages containing each students volunteering frequencies and logs of which questions they did\n")
         await update.message.reply_text(builder.getvalue())
+
 
 async def delete_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Deletes the message.
     """
+    # print("Deleting")
+    # print(context.bot.username)
     await update.message.delete()
 
 
@@ -405,6 +415,7 @@ def main() -> None:
     end_handler = CommandHandler("end", end_tut)
     application.add_handler(end_handler)
 
+    global current_filter
     current_filter = QuestionFilter({})
     attempt_handler = MessageHandler(current_filter, attempt_question)
     application.add_handler(attempt_handler)
@@ -418,7 +429,7 @@ def main() -> None:
     help_admin_handler = CommandHandler("helpmin", help_admin)
     application.add_handler(help_admin_handler)
 
-    delete_bot_pins_handler = MessageHandler(filters.PINNED_MESSAGE & filters.VIA_BOT, delete_msg)
+    delete_bot_pins_handler = MessageHandler((filters.StatusUpdate.PINNED_MESSAGE & filters.User(username="tutorial_helper_bot")), delete_msg)
     application.add_handler(delete_bot_pins_handler)
 
     # For unknown commands, must be added last
