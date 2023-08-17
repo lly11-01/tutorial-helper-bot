@@ -1,5 +1,5 @@
 """
-VERSION: 0.3
+VERSION: 0.3.1
 Copyright (C) 2023 Loy Liang Yi
 You may use, distribute and modify this code under the terms of the GNU General Public License v3.0.
 """
@@ -372,6 +372,12 @@ async def help_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         builder.write("/show_attempts - PMs a set of messages containing each students volunteering frequencies and logs of which questions they did\n")                      
         await update.message.reply_text(builder.getvalue())
 
+async def delete_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Deletes the message.
+    """
+    await update.message.delete()
+
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -411,6 +417,9 @@ def main() -> None:
 
     help_admin_handler = CommandHandler("helpmin", help_admin)
     application.add_handler(help_admin_handler)
+
+    delete_bot_pins_handler = MessageHandler(filters.PINNED_MESSAGE & filters.VIA_BOT, delete_msg)
+    application.add_handler(delete_bot_pins_handler)
 
     # For unknown commands, must be added last
     unknown_handler = MessageHandler(filters.COMMAND, unknown)
