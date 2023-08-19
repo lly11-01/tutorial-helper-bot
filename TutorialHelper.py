@@ -1,5 +1,5 @@
 """
-VERSION: 0.4
+VERSION: 0.4.1
 Copyright (C) 2023 Loy Liang Yi
 You may use, distribute and modify this code under the terms of the GNU General Public License v3.0.
 """
@@ -11,6 +11,7 @@ SAVE_USER_FILE = "user_data.json"
 SAVE_CHAT_FILE = "chat_data.json"
 
 import io
+import json
 import logging
 from typing import Dict, Optional
 
@@ -505,8 +506,8 @@ async def save_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # save to file
         with open(SAVE_USER_FILE, 'w') as user_file, open(SAVE_CHAT_FILE, 'w') as chat_file:
-            user_file.write(str(context.user_data))
-            chat_file.write(str(context.chat_data))
+            user_file.write(json.dumps(context.user_data))
+            chat_file.write(json.dumps(context.chat_data))
 
         # send files
         with open(SAVE_USER_FILE, 'r') as user_file, open(SAVE_CHAT_FILE, 'r') as chat_file:
