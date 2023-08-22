@@ -1,5 +1,5 @@
 """
-VERSION: 0.4.1
+VERSION: 0.5
 Copyright (C) 2023 Loy Liang Yi
 You may use, distribute and modify this code under the terms of the GNU General Public License v3.0.
 """
@@ -154,7 +154,8 @@ async def display(session, update, context):
         await prev_display.delete()
 
     text = io.StringIO()
-    text.write(f"Questions for tutorial {session.tut_num}\n")
+    text.write(f"Questions to be discussed in Tutorial {session.tut_num}\n")
+    text.write(f"Reply to this message to volunteer!\n")
     for question, doer in session.questions.items():
         text.write(f"Q{question} - {doer if doer else ''}\n")
 
@@ -174,7 +175,7 @@ async def new_tut(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         # End active session if there is one
         prev_session = context.chat_data['active']
         if prev_session is not None:
-            await end_tut(update, context)
+            await end_tut(update, context, internal=True)
 
         # Create new session
         # First argument is the tutorial session number,
@@ -192,7 +193,7 @@ async def new_tut(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.delete()
 
 
-async def end_tut(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def end_tut(update: Update, context: ContextTypes.DEFAULT_TYPE, internal=False) -> None:
     """
     Ends the currently running tutorial session.
     Admin-only command.
@@ -209,6 +210,13 @@ async def end_tut(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await reply_msg.delete()
 
             return
+
+        # Unpin prev display
+        prev_display = context.chat_data.get('current_display', None)
+        if prev_display:
+            await prev_display.unpin()
+
+
         context.chat_data['active'] = None
         context.chat_data['current_display'] = None
 
@@ -243,7 +251,12 @@ async def end_tut(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         #     await prev_display.delete()
         # context.chat_data['current_display'] = None
 
-        await update.message.delete()
+        # DMs attempts and JSON files to command sender
+        await show_attempts(update, context, internal=True)
+        await save_file(update, context, internal=True)
+
+        if not internal:
+            await update.message.delete()
         # await reply_msg.delete()
 
 
@@ -271,7 +284,7 @@ async def attempt_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     # Invalid question number
     if qn_num not in current_tut.questions:
-        reply_msg = await update.message.reply.text(f"Invalid question number.")
+        reply_msg = await update.message.reply_text(f"Invalid question number.")
         await reply_msg.delete()
         await update.message.delete()
         return
@@ -330,7 +343,7 @@ async def remove_attempt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await reply_msg.delete()
 
 
-async def show_attempts(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def show_attempts(update: Update, context: ContextTypes.DEFAULT_TYPE, internal=False) -> None:
     """
     Sends a PM to the user containing a dictionary tracking how many times each person attempted a question.
     Admin-only command
@@ -365,7 +378,9 @@ async def show_attempts(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             builder.write("\n")
 
         await context.bot.send_message(chat_id=user_to_dm_id, text=builder.getvalue())
-    await update.message.delete()
+
+    if not internal:
+        await update.message.delete()
 
 
 async def help_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -496,7 +511,7 @@ async def remove_student(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reply_msg.delete()
 
 
-async def save_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def save_file(update: Update, context: ContextTypes.DEFAULT_TYPE, internal=False):
     """
     Sends the save file to the user requesting in a private message.
     Admin-only command.
@@ -513,7 +528,9 @@ async def save_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open(SAVE_USER_FILE, 'r') as user_file, open(SAVE_CHAT_FILE, 'r') as chat_file:
             await context.bot.send_document(user_id, chat_file)
             await context.bot.send_document(user_id, user_file)
-    await update.message.delete()
+
+    if not internal:
+        await update.message.delete()
 
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
