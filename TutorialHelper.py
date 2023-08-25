@@ -1,5 +1,5 @@
 """
-VERSION: 0.5
+VERSION: 0.5.1
 Copyright (C) 2023 Loy Liang Yi
 You may use, distribute and modify this code under the terms of the GNU General Public License v3.0.
 """
@@ -216,7 +216,6 @@ async def end_tut(update: Update, context: ContextTypes.DEFAULT_TYPE, internal=F
         if prev_display:
             await prev_display.unpin()
 
-
         context.chat_data['active'] = None
         context.chat_data['current_display'] = None
 
@@ -408,14 +407,17 @@ async def help_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         builder.write(
             "/new <tut number> <*question numbers> - Creates and begins a new tutorial session, sets up a board for students to volunteer questions\n")
         builder.write("/end - Ends currently running tutorial session\n")
-        builder.write("/add <username> <qn_number> - Assigns student with the given username to the given qn number in an active tutorial session."
-                      "Student may do multiple questions in one session, but qn given must not be taken by someone else.\n")
-        builder.write("/remove <username> <qn_number> - Removes student with the given username from doing the given qn number."
-                      "Must already be assigned to do that qn.\n")
+        builder.write(
+            "/add <username> <qn_number> - Assigns student with the given username to the given qn number in an active tutorial session."
+            "Student may do multiple questions in one session, but qn given must not be taken by someone else.\n")
+        builder.write(
+            "/remove <username> <qn_number> - Removes student with the given username from doing the given qn number."
+            "Must already be assigned to do that qn.\n")
         builder.write(
             "/show_attempts - PMs a set of messages containing each students volunteering frequencies and logs of which questions they did\n")
-        builder.write("/save - PMs context.chat_data and context.user_data as 'chat_data.json' and 'user_data.json' respectively"
-                      "to the requesting user.\n")
+        builder.write(
+            "/save - PMs context.chat_data and context.user_data as 'chat_data.json' and 'user_data.json' respectively"
+            "to the requesting user.\n")
         await context.bot.send_message(chat_id=user_to_dm_id, text=builder.getvalue())
     await update.message.delete()
 
@@ -533,6 +535,14 @@ async def save_file(update: Update, context: ContextTypes.DEFAULT_TYPE, internal
         await update.message.delete()
 
 
+async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Pongs the user back.
+    Just to test whether the bot is active
+    """
+    await update.message.reply_text("Pong!")
+
+
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     For handling unknown commands
@@ -585,6 +595,9 @@ def main() -> None:
 
     save_file_handler = CommandHandler("save", save_file)
     application.add_handler(save_file_handler)
+
+    ping_handler = CommandHandler("ping", ping)
+    application.add_handler(ping_handler)
 
     # For unknown commands, must be added last
     unknown_handler = MessageHandler(filters.COMMAND, unknown)
